@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from origo.schema.graph import TraceGraph
@@ -10,12 +12,15 @@ class OutputClaim(BaseModel):
 
     id: str
     text: str
-    source_span_id: str
+    source_artifact_id: str | None = None
+    source_span_id: str | None = None
     subject: str | None = None
     predicate: str | None = None
     object: str | None = None
     time_scope: str | None = None
     confidence: float | None = None
+    qualifiers: dict[str, object] = Field(default_factory=dict)
+    extraction_method: Literal["manual", "heuristic", "llm"] = "manual"
 
 
 class OutputAction(BaseModel):
@@ -24,9 +29,12 @@ class OutputAction(BaseModel):
     id: str
     action_type: str
     arguments: dict[str, object]
-    source_span_id: str
+    source_artifact_id: str | None = None
+    source_span_id: str | None = None
+    tool_name: str | None = None
     target: str | None = None
     risk_level: str | None = None
+    extraction_method: Literal["manual", "heuristic", "llm"] = "heuristic"
 
 
 class IgnoredEvidence(BaseModel):
