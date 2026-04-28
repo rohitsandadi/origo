@@ -8,6 +8,10 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from origo.importers.local_json import load_failure_yaml, load_trace_json
+from origo.importers.langfuse import load_langfuse_json
+from origo.importers.openinference import load_openinference_json
+from origo.importers.phoenix import load_phoenix_json
+from origo.importers.traceroot import load_traceroot_json
 from origo.pipeline import analyze_with_artifacts
 from origo.reports.cards import analyze_traceback
 from origo.reports.json_report import report_to_json
@@ -30,10 +34,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     validate = subcommands.add_parser("validate-trace", help="Validate a local JSON trace.")
     validate.add_argument("--trace", required=True, help="Path to trace JSON.")
+    validate.add_argument("--trace-format", choices=_TRACE_FORMATS, default="local", help="Trace input format.")
     validate.set_defaults(func=_validate_trace)
 
     explain = subcommands.add_parser("explain", help="Explain a bad output from a trace and failure spec.")
     explain.add_argument("--trace", required=True, help="Path to trace JSON.")
+    explain.add_argument("--trace-format", choices=_TRACE_FORMATS, default="local", help="Trace input format.")
     explain.add_argument("--failure", required=True, help="Path to failure YAML.")
     explain.add_argument("--format", choices=("markdown", "json"), default="markdown")
     explain.add_argument("--out", help="Output file. Prints to stdout when omitted.")
@@ -48,7 +54,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _validate_trace(args: argparse.Namespace) -> int:
-    trace = load_trace_json(args.trace)
+    trace = _load_trace(args.trace, args.trace_format)
     missing = _missing_debuggability_fields(trace)
     level = "high" if not missing else "medium" if len(missing) <= 2 else "low"
     print(f"Trace debuggability: {level}")
@@ -62,7 +68,7 @@ def _validate_trace(args: argparse.Namespace) -> int:
 
 
 def _explain(args: argparse.Namespace) -> int:
-    trace = load_trace_json(args.trace)
+    trace = _load_trace(args.trace, args.trace_format)
     failure = load_failure_yaml(args.failure)
     report = analyze_with_artifacts(trace, failure, run_root=args.run_dir).report
     rendered = _render_report(report, args.format)
@@ -86,6 +92,20 @@ def _render_report(report, format_name: str) -> str:
     if format_name == "json":
         return json.dumps(report_to_json(report), indent=2) + "\n"
     return render_markdown(report)
+
+
+_TRACE_FORMATS = ("local", "openinference", "phoenix", "langfuse", "traceroot")
+
+
+def _load_trace(path: str, format_name: str):
+    loaders = {
+        "local": load_trace_json,
+        "openinference": load_openinference_json,
+        "phoenix": load_phoenix_json,
+        "langfuse": load_langfuse_json,
+        "traceroot": load_traceroot_json,
+    }
+    return loaders[format_name](path)
 
 
 def _missing_debuggability_fields(trace) -> list[str]:
