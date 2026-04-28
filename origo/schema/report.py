@@ -48,6 +48,7 @@ class CulpritCard(BaseModel):
     path: list[str] = Field(default_factory=list)
     ignored_evidence_span_ids: list[str] = Field(default_factory=list)
     ignored_evidence: list[IgnoredEvidence] = Field(default_factory=list)
+    failed_check_ids: list[str] = Field(default_factory=list)
     failure_modes: list[str] = Field(default_factory=list)
     suggested_fixes: list[str] = Field(default_factory=list)
     why_suspicious: list[str] = Field(default_factory=list)

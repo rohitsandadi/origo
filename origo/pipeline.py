@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from origo.invariants.checker import run_builtin_checks
+from origo.invariants.models import CheckResult
 from origo.ir.artifact_extractor import extract_artifacts
 from origo.ir.models import Artifact, TrajectoryIR
 from origo.ir.normalize import trace_to_trajectory_ir
@@ -20,6 +22,7 @@ class AnalysisResult:
     report: TracebackReport
     trajectory_ir: TrajectoryIR
     artifacts: list[Artifact]
+    validation_log: list[CheckResult]
     run_dir: Path | None = None
 
 
@@ -33,6 +36,8 @@ def analyze_with_artifacts(
     trajectory_ir = trace_to_trajectory_ir(trace)
     artifacts = extract_artifacts(trajectory_ir)
     report = analyze_traceback(trace, failure)
+    validation_log = run_builtin_checks(trace, failure, artifacts, report.graph)
+    _attach_failed_checks(report, validation_log)
     run_dir: Path | None = None
 
     if run_root is not None:
@@ -41,6 +46,7 @@ def analyze_with_artifacts(
         writer.write_json("failure_spec", failure)
         writer.write_json("trajectory_ir", trajectory_ir)
         writer.write_json("artifacts", artifacts)
+        writer.write_json("validation_log", validation_log)
         writer.write_json("report", report_to_json(report))
         writer.write_text("report.md", render_markdown(report))
         run_dir = writer.run_dir
@@ -49,5 +55,15 @@ def analyze_with_artifacts(
         report=report,
         trajectory_ir=trajectory_ir,
         artifacts=artifacts,
+        validation_log=validation_log,
         run_dir=run_dir,
     )
+
+
+def _attach_failed_checks(report: TracebackReport, validation_log: list[CheckResult]) -> None:
+    failed = [check for check in validation_log if check.status == "fail"]
+    for card in report.cards:
+        relevant_spans = {card.culprit_span_id, *card.ignored_evidence_span_ids}
+        card.failed_check_ids = [
+            check.id for check in failed if check.target_step_id in relevant_spans
+        ]
