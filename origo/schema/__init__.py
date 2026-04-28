@@ -1,0 +1,1 @@
+"""Core Origo schema models."""

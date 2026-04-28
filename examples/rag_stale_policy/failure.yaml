@@ -1,0 +1,8 @@
+failure_id: rag-stale-policy
+final_output_span_id: final
+bad_output: Yes. Since you bought the jacket 45 days ago, you are still inside the 90 days refund window.
+expected: No. The current refund policy allows refunds only within 30 days of purchase.
+failure_type: stale_retrieval
+notes: The final answer followed an archived retrieved chunk and ignored the newer policy tool result.
+expected_evidence_span_ids:
+  - current_policy_tool

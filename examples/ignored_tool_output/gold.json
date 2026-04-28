@@ -1,0 +1,11 @@
+{
+  "failure_id": "ignored-tool-output",
+  "culprit_span_id": "final",
+  "ignored_evidence_span_ids": [
+    "tool_result"
+  ],
+  "failure_modes": [
+    "ignored_tool_output"
+  ],
+  "expected_final_output": "Order A100 is eligible for a refund because the tool result says it was returned unopened within the 30-day window."
+}

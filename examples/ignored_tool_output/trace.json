@@ -1,0 +1,47 @@
+{
+  "run_id": "ignored-tool-output",
+  "task": "Tell a customer whether order A100 is eligible for refund.",
+  "spans": [
+    {
+      "id": "user",
+      "kind": "user_input",
+      "output": "Can order A100 be refunded?"
+    },
+    {
+      "id": "tool_call",
+      "parent_id": "user",
+      "kind": "tool_call",
+      "name": "check_refund_eligibility",
+      "input": {
+        "order_id": "A100"
+      }
+    },
+    {
+      "id": "tool_result",
+      "parent_id": "tool_call",
+      "kind": "tool_result",
+      "name": "check_refund_eligibility",
+      "output": {
+        "order_id": "A100",
+        "status": "eligible",
+        "reason": "Returned unopened within the 30-day window."
+      }
+    },
+    {
+      "id": "summary",
+      "parent_id": "tool_result",
+      "kind": "context_summary",
+      "output": "Order A100 refund check completed."
+    },
+    {
+      "id": "final",
+      "parent_id": "summary",
+      "kind": "final_output",
+      "output": "Order A100 cannot be refunded because it is outside the allowed return window."
+    }
+  ],
+  "final_output_span_id": "final",
+  "metadata": {
+    "example": "ignored_tool_output"
+  }
+}

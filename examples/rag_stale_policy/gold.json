@@ -1,0 +1,11 @@
+{
+  "failure_id": "rag-stale-policy",
+  "culprit_span_id": "policy_old",
+  "ignored_evidence_span_ids": [
+    "current_policy_tool"
+  ],
+  "failure_modes": [
+    "stale_retrieval"
+  ],
+  "expected_final_output": "No. The current refund policy allows refunds only within 30 days of purchase."
+}

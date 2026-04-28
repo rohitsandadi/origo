@@ -1,0 +1,68 @@
+{
+  "run_id": "rag-stale-policy",
+  "task": "Answer whether an order placed 45 days ago can still be refunded.",
+  "spans": [
+    {
+      "id": "user",
+      "kind": "user_input",
+      "output": "I bought my jacket 45 days ago. Can I still get a refund?"
+    },
+    {
+      "id": "retrieval_query",
+      "parent_id": "user",
+      "kind": "retrieval",
+      "input": "refund policy return window",
+      "output": [
+        "policy_old"
+      ]
+    },
+    {
+      "id": "policy_old",
+      "parent_id": "retrieval_query",
+      "kind": "retrieved_chunk",
+      "output": "Archived policy from 2023: customers may request a refund within 90 days of purchase.",
+      "metadata": {
+        "source": "kb://policies/refunds-2023",
+        "version": "2023-11-01"
+      }
+    },
+    {
+      "id": "current_policy_tool",
+      "parent_id": "user",
+      "kind": "tool_result",
+      "name": "get_current_refund_policy",
+      "input": {
+        "policy": "refunds"
+      },
+      "output": "Current policy from 2026: customers may request a refund within 30 days of purchase.",
+      "metadata": {
+        "source": "tool://policy-service/refunds",
+        "version": "2026-04-01"
+      }
+    },
+    {
+      "id": "summary",
+      "parent_id": "policy_old",
+      "kind": "context_summary",
+      "input": {
+        "retrieved_span_ids": [
+          "policy_old"
+        ],
+        "tool_result_span_ids": [
+          "current_policy_tool"
+        ]
+      },
+      "output": "Refunds are allowed within 90 days of purchase."
+    },
+    {
+      "id": "final",
+      "parent_id": "summary",
+      "kind": "final_output",
+      "output": "Yes. Since you bought the jacket 45 days ago, you are still inside the 90 days refund window."
+    }
+  ],
+  "final_output_span_id": "final",
+  "metadata": {
+    "example": "rag_stale_policy"
+  }
+}

@@ -1,0 +1,8 @@
+failure_id: ignored-tool-output
+final_output_span_id: final
+bad_output: Order A100 cannot be refunded because it is outside the allowed return window.
+expected: Order A100 is eligible for a refund because the tool result says it was returned unopened within the 30-day window.
+failure_type: ignored_tool_output
+notes: The final answer omitted the correct eligibility result returned by the tool.
+expected_evidence_span_ids:
+  - tool_result
