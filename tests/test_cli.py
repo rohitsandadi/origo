@@ -25,6 +25,42 @@ def test_validate_trace_cli_reports_debuggability():
     assert "run_id: rag-stale-policy" in result.stdout
 
 
+def test_validate_trace_cli_accepts_openinference_format(tmp_path):
+    trace_path = tmp_path / "openinference.json"
+    trace_path.write_text(
+        json.dumps(
+            {
+                "resourceSpans": [
+                    {
+                        "scopeSpans": [
+                            {
+                                "spans": [
+                                    {
+                                        "name": "final",
+                                        "traceId": "00000000000000000000000000000001",
+                                        "spanId": "0000000000000001",
+                                        "attributes": [
+                                            {"key": "openinference.span.kind", "value": {"stringValue": "LLM"}},
+                                            {"key": "origo.final_output", "value": {"boolValue": True}},
+                                            {"key": "output.value", "value": {"stringValue": "hello"}},
+                                        ],
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_cli("validate-trace", "--trace", str(trace_path), "--trace-format", "openinference")
+
+    assert result.returncode == 0
+    assert "run_id: 00000000000000000000000000000001" in result.stdout
+
+
 def test_explain_cli_writes_markdown_report(tmp_path):
     out = tmp_path / "report.md"
 
