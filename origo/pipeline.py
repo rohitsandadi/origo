@@ -5,6 +5,7 @@ from pathlib import Path
 
 from origo.analysis.artifact_candidates import ArtifactCulpritCandidate, rank_artifact_candidates
 from origo.analysis.evidence_pack import EvidencePack, build_evidence_pack
+from origo.analysis.localizer import LocalizationResult, localize_from_evidence_pack
 from origo.extraction.actions import extract_actions
 from origo.extraction.claims import extract_claims
 from origo.failure.target import FailureTarget, select_failure_target
@@ -37,6 +38,7 @@ class AnalysisResult:
     validation_log: list[CheckResult]
     culprit_candidates: list[ArtifactCulpritCandidate]
     evidence_pack: EvidencePack
+    localization: LocalizationResult
     run_dir: Path | None = None
 
 
@@ -65,8 +67,10 @@ def analyze_with_artifacts(
         candidates=culprit_candidates,
         validation_log=validation_log,
     )
+    localization = localize_from_evidence_pack(evidence_pack)
     _attach_failed_checks(report, validation_log)
     _attach_artifact_candidates(report, culprit_candidates, validation_log)
+    _attach_localization(report, localization)
     run_dir: Path | None = None
 
     if run_root is not None:
@@ -84,6 +88,7 @@ def analyze_with_artifacts(
         writer.write_json("validation_log", validation_log)
         writer.write_json("culprit_candidates", culprit_candidates)
         writer.write_json("evidence_pack", evidence_pack)
+        writer.write_json("localization", localization)
         writer.write_json("report", report_to_json(report))
         writer.write_text("report.md", render_markdown(report))
         run_dir = writer.run_dir
@@ -99,6 +104,7 @@ def analyze_with_artifacts(
         validation_log=validation_log,
         culprit_candidates=culprit_candidates,
         evidence_pack=evidence_pack,
+        localization=localization,
         run_dir=run_dir,
     )
 
@@ -132,6 +138,15 @@ def _attach_artifact_candidates(
             if check.target_step_id in card.ignored_evidence_span_ids and check.target_artifact_id is not None
         ]
         card.ignored_evidence_artifact_ids = _unique(ignored_artifacts)
+
+
+def _attach_localization(report: TracebackReport, localization: LocalizationResult) -> None:
+    if localization.insufficient_data:
+        report.missing_evidence.append(
+            f"Insufficient trace data: {localization.uncertainty}"
+            if localization.uncertainty
+            else "Insufficient trace data prevented culprit localization."
+        )
 
 
 def _unique(values: list[str]) -> list[str]:
