@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from origo.extraction.actions import extract_actions
+from origo.extraction.claims import extract_claims
+from origo.failure.target import FailureTarget, select_failure_target
 from origo.invariants.checker import run_builtin_checks
 from origo.invariants.models import CheckResult
 from origo.ir.artifact_extractor import extract_artifacts
@@ -24,6 +27,9 @@ class AnalysisResult:
     report: TracebackReport
     trajectory_ir: TrajectoryIR
     artifacts: list[Artifact]
+    failure_target: FailureTarget
+    claims: list[object]
+    actions: list[object]
     provenance_graph: TraceGraph
     validation_log: list[CheckResult]
     run_dir: Path | None = None
@@ -38,6 +44,9 @@ def analyze_with_artifacts(
 
     trajectory_ir = trace_to_trajectory_ir(trace)
     artifacts = extract_artifacts(trajectory_ir)
+    failure_target = select_failure_target(failure, artifacts)
+    claims = extract_claims(failure_target)
+    actions = extract_actions(artifacts)
     provenance_graph = build_artifact_provenance_graph(trajectory_ir, artifacts)
     report = analyze_traceback(trace, failure)
     validation_log = run_builtin_checks(trace, failure, artifacts, report.graph)
@@ -48,8 +57,11 @@ def analyze_with_artifacts(
         writer = RunArtifactWriter(run_root, trace.run_id)
         writer.write_json("normalized_trace", trace)
         writer.write_json("failure_spec", failure)
+        writer.write_json("failure_target", failure_target)
         writer.write_json("trajectory_ir", trajectory_ir)
         writer.write_json("artifacts", artifacts)
+        writer.write_json("claims", claims)
+        writer.write_json("actions", actions)
         writer.write_json("provenance_graph", provenance_graph)
         writer.write_json("validation_log", validation_log)
         writer.write_json("report", report_to_json(report))
@@ -60,6 +72,9 @@ def analyze_with_artifacts(
         report=report,
         trajectory_ir=trajectory_ir,
         artifacts=artifacts,
+        failure_target=failure_target,
+        claims=claims,
+        actions=actions,
         provenance_graph=provenance_graph,
         validation_log=validation_log,
         run_dir=run_dir,

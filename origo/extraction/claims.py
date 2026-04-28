@@ -3,6 +3,22 @@ from __future__ import annotations
 from origo.schema.failure import FailureSpec
 from origo.schema.report import OutputClaim
 from origo.schema.trace import TraceRun
+from origo.failure.target import FailureTarget
+
+
+def extract_claims(target: FailureTarget) -> list[OutputClaim]:
+    """Extract v1 claims from the selected failure target."""
+
+    return [
+        OutputClaim(
+            id="claim:bad_output",
+            text=target.bad_output,
+            source_artifact_id=target.final_output_artifact_id,
+            source_span_id=target.final_output_span_id,
+            confidence=1.0,
+            extraction_method="manual",
+        )
+    ]
 
 
 def extract_bad_output_claim(trace: TraceRun, failure: FailureSpec) -> OutputClaim:
