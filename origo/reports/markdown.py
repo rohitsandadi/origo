@@ -42,6 +42,9 @@ def render_markdown(report: TracebackReport) -> str:
             for evidence in card.ignored_evidence:
                 lines.append(f"- `{evidence.span_id}`: {evidence.snippet}")
                 lines.append(f"  - {evidence.issue}")
+        if card.failed_check_ids:
+            lines.extend(["", "Failed checks:", ""])
+            lines.extend(f"- `{check_id}`" for check_id in card.failed_check_ids)
         if card.failure_modes:
             lines.extend(["", "Failure modes:", ""])
             lines.extend(f"- `{mode}`" for mode in card.failure_modes)

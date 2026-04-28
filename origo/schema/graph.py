@@ -10,6 +10,7 @@ NodeKind = Literal["span", "claim", "action", "evidence", "artifact", "failure_a
 
 EdgeKind = Literal[
     "parent_child_span",
+    "contains_artifact",
     "control_flow_next",
     "included_in_prompt",
     "retrieved_for",

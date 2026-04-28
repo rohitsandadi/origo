@@ -63,6 +63,31 @@ def test_explain_cli_writes_json_report(tmp_path):
     assert payload["cards"][0]["culprit_span_id"] == "policy_old"
 
 
+def test_explain_cli_writes_auditable_run_artifacts(tmp_path):
+    out = tmp_path / "report.md"
+    run_root = tmp_path / "runs"
+
+    result = run_cli(
+        "explain",
+        "--trace",
+        "examples/rag_stale_policy/trace.json",
+        "--failure",
+        "examples/rag_stale_policy/failure.yaml",
+        "--out",
+        str(out),
+        "--run-dir",
+        str(run_root),
+    )
+
+    assert result.returncode == 0
+    run_dir = run_root / "rag-stale-policy"
+    assert (run_dir / "normalized_trace.json").exists()
+    assert (run_dir / "trajectory_ir.json").exists()
+    assert (run_dir / "artifacts.json").exists()
+    assert (run_dir / "report.json").exists()
+    assert (run_dir / "report.md").exists()
+
+
 def test_explain_cli_rejects_unsupported_text_format():
     result = run_cli(
         "explain",
