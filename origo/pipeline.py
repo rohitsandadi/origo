@@ -58,7 +58,7 @@ def analyze_with_artifacts(
     static_invariants = load_builtin_static_invariants()
     dynamic_invariants = load_builtin_dynamic_invariants()
     report = analyze_traceback(trace, failure)
-    validation_log = run_builtin_checks(trace, failure, artifacts, report.graph)
+    validation_log = run_builtin_checks(trace, failure, artifacts, report.graph, provenance_graph)
     culprit_candidates = rank_artifact_candidates(artifacts, provenance_graph, validation_log)
     evidence_pack = build_evidence_pack(
         failure_target=failure_target,
