@@ -5,6 +5,21 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class Invariant(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    scope: Literal["static", "dynamic"]
+    target_kinds: list[str] = Field(default_factory=list)
+    trigger: str
+    check_type: Literal["python", "structured", "llm_judge"]
+    assertion: str
+    code: str | None = None
+    prompt: str | None = None
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+
 class CheckResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

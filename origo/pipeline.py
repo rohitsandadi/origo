@@ -9,6 +9,7 @@ from origo.extraction.actions import extract_actions
 from origo.extraction.claims import extract_claims
 from origo.failure.target import FailureTarget, select_failure_target
 from origo.invariants.checker import run_builtin_checks
+from origo.invariants.library import load_builtin_dynamic_invariants, load_builtin_static_invariants
 from origo.invariants.models import CheckResult
 from origo.ir.artifact_extractor import extract_artifacts
 from origo.ir.models import Artifact, TrajectoryIR
@@ -52,6 +53,8 @@ def analyze_with_artifacts(
     claims = extract_claims(failure_target)
     actions = extract_actions(artifacts)
     provenance_graph = build_artifact_provenance_graph(trajectory_ir, artifacts)
+    static_invariants = load_builtin_static_invariants()
+    dynamic_invariants = load_builtin_dynamic_invariants()
     report = analyze_traceback(trace, failure)
     validation_log = run_builtin_checks(trace, failure, artifacts, report.graph)
     culprit_candidates = rank_artifact_candidates(artifacts, provenance_graph, validation_log)
@@ -76,6 +79,8 @@ def analyze_with_artifacts(
         writer.write_json("claims", claims)
         writer.write_json("actions", actions)
         writer.write_json("provenance_graph", provenance_graph)
+        writer.write_json("invariants_static", static_invariants)
+        writer.write_json("invariants_dynamic", dynamic_invariants)
         writer.write_json("validation_log", validation_log)
         writer.write_json("culprit_candidates", culprit_candidates)
         writer.write_json("evidence_pack", evidence_pack)

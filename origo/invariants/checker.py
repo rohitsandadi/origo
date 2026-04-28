@@ -49,6 +49,7 @@ def _stale_retrieval_checks(
         checks.append(
             CheckResult(
                 id=f"check:stale_retrieval:{span_id}",
+                invariant_id="builtin:stale_retrieval",
                 check_name="stale retrieved evidence supports bad output",
                 target_step_id=span_id,
                 target_artifact_id=target_artifact_id,
@@ -81,6 +82,7 @@ def _ignored_evidence_checks(
         checks.append(
             CheckResult(
                 id=f"check:ignored_evidence:{span_id}",
+                invariant_id="builtin:ignored_evidence",
                 check_name="expected evidence was omitted or ignored",
                 target_step_id=span_id,
                 target_artifact_id=target_artifact_id,
