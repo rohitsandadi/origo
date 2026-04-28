@@ -25,6 +25,7 @@ def run_builtin_checks(
     checks.extend(_stale_retrieval_checks(trace, failure, artifact_ids, bad_span_ids, expected_span_ids))
     if graph is not None:
         checks.extend(_ignored_evidence_checks(trace, artifact_ids, graph))
+    checks.extend(_imported_score_checks(trace, artifact_ids))
     return _unique_checks(checks)
 
 
@@ -97,6 +98,48 @@ def _ignored_evidence_checks(
             )
         )
     return checks
+
+
+def _imported_score_checks(trace: TraceRun, artifact_ids: set[str]) -> list[CheckResult]:
+    checks: list[CheckResult] = []
+    for span in trace.spans:
+        scores = span.metadata.get("langfuse_scores") or span.metadata.get("phoenix_scores") or []
+        if not isinstance(scores, list):
+            continue
+        for index, score in enumerate(scores):
+            if not isinstance(score, dict):
+                continue
+            value = score.get("value")
+            if not isinstance(value, int | float) or value > 0:
+                continue
+            score_id = str(score.get("id") or f"{span.id}:{index}")
+            name = str(score.get("name") or "imported_score")
+            failure_mode = _failure_mode_from_score_name(name)
+            checks.append(
+                CheckResult(
+                    id=f"imported-score:{score_id}",
+                    check_name=f"imported score failed: {name}",
+                    target_step_id=span.id,
+                    target_artifact_id=_artifact_id(span.id, artifact_ids),
+                    status="fail",
+                    failure_mode=failure_mode,
+                    explanation=str(score.get("comment") or f"Imported score `{name}` marked this observation as failing."),
+                    evidence_refs=[_artifact_id(span.id, artifact_ids)],
+                    confidence=0.8,
+                )
+            )
+    return checks
+
+
+def _failure_mode_from_score_name(name: str) -> str:
+    normalized = name.lower()
+    if "tool_response" in normalized or "tool response" in normalized:
+        return "ignored_tool_output"
+    if "faithfulness" in normalized or "hallucination" in normalized:
+        return "unsupported_claim"
+    if "tool_invocation" in normalized or "tool invocation" in normalized:
+        return "wrong_tool_argument"
+    return "other"
 
 
 def _artifact_id(span_id: str, artifact_ids: set[str]) -> str:
