@@ -53,6 +53,9 @@ class CulpritCard(BaseModel):
     confidence: float
     culprit_span_id: str
     culprit_snippet: str
+    culprit_artifact_ids: list[str] = Field(default_factory=list)
+    ignored_evidence_artifact_ids: list[str] = Field(default_factory=list)
+    traceback_path: list[str] = Field(default_factory=list)
     path: list[str] = Field(default_factory=list)
     ignored_evidence_span_ids: list[str] = Field(default_factory=list)
     ignored_evidence: list[IgnoredEvidence] = Field(default_factory=list)

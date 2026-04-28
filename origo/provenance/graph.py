@@ -71,4 +71,28 @@ def build_artifact_provenance_graph(ir: TrajectoryIR, artifacts: list[Artifact])
                 )
             )
 
+    output_by_span = {
+        artifact.span_id: artifact
+        for artifact in artifacts
+        if artifact.span_id is not None and artifact.id.endswith(".output")
+    }
+    for step in ir.steps:
+        if step.span_id is None or step.parent_span_id is None:
+            continue
+        source = output_by_span.get(step.parent_span_id)
+        target = output_by_span.get(step.span_id)
+        if source is None or target is None:
+            continue
+        if target.metadata.get("input_artifact_ids"):
+            continue
+        edges.append(
+            TraceEdge(
+                source=f"artifact:{source.id}",
+                target=f"artifact:{target.id}",
+                kind="generated_from",
+                evidence=[source.id, target.id],
+                metadata={"method": "parent_span_output_fallback"},
+            )
+        )
+
     return TraceGraph(nodes=nodes, edges=edges)
