@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from origo.importers.local_json import load_failure_yaml, load_trace_json
+from origo.pipeline import analyze_with_artifacts
 from origo.reports.cards import analyze_traceback
 from origo.reports.json_report import report_to_json
 from origo.reports.markdown import render_markdown
@@ -36,6 +37,7 @@ def _build_parser() -> argparse.ArgumentParser:
     explain.add_argument("--failure", required=True, help="Path to failure YAML.")
     explain.add_argument("--format", choices=("markdown", "json"), default="markdown")
     explain.add_argument("--out", help="Output file. Prints to stdout when omitted.")
+    explain.add_argument("--run-dir", help="Directory where auditable stage artifacts should be written.")
     explain.set_defaults(func=_explain)
 
     demo = subcommands.add_parser("demo", help="Run a canned Origo demo.")
@@ -62,7 +64,7 @@ def _validate_trace(args: argparse.Namespace) -> int:
 def _explain(args: argparse.Namespace) -> int:
     trace = load_trace_json(args.trace)
     failure = load_failure_yaml(args.failure)
-    report = analyze_traceback(trace, failure)
+    report = analyze_with_artifacts(trace, failure, run_root=args.run_dir).report
     rendered = _render_report(report, args.format)
     if args.out:
         Path(args.out).write_text(rendered, encoding="utf-8")
