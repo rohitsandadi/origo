@@ -8,11 +8,13 @@ from origo.invariants.models import CheckResult
 from origo.ir.artifact_extractor import extract_artifacts
 from origo.ir.models import Artifact, TrajectoryIR
 from origo.ir.normalize import trace_to_trajectory_ir
+from origo.provenance.graph import build_artifact_provenance_graph
 from origo.reports.cards import analyze_traceback
 from origo.reports.json_report import report_to_json
 from origo.reports.markdown import render_markdown
 from origo.runs.writer import RunArtifactWriter
 from origo.schema.failure import FailureSpec
+from origo.schema.graph import TraceGraph
 from origo.schema.report import TracebackReport
 from origo.schema.trace import TraceRun
 
@@ -22,6 +24,7 @@ class AnalysisResult:
     report: TracebackReport
     trajectory_ir: TrajectoryIR
     artifacts: list[Artifact]
+    provenance_graph: TraceGraph
     validation_log: list[CheckResult]
     run_dir: Path | None = None
 
@@ -35,6 +38,7 @@ def analyze_with_artifacts(
 
     trajectory_ir = trace_to_trajectory_ir(trace)
     artifacts = extract_artifacts(trajectory_ir)
+    provenance_graph = build_artifact_provenance_graph(trajectory_ir, artifacts)
     report = analyze_traceback(trace, failure)
     validation_log = run_builtin_checks(trace, failure, artifacts, report.graph)
     _attach_failed_checks(report, validation_log)
@@ -46,6 +50,7 @@ def analyze_with_artifacts(
         writer.write_json("failure_spec", failure)
         writer.write_json("trajectory_ir", trajectory_ir)
         writer.write_json("artifacts", artifacts)
+        writer.write_json("provenance_graph", provenance_graph)
         writer.write_json("validation_log", validation_log)
         writer.write_json("report", report_to_json(report))
         writer.write_text("report.md", render_markdown(report))
@@ -55,6 +60,7 @@ def analyze_with_artifacts(
         report=report,
         trajectory_ir=trajectory_ir,
         artifacts=artifacts,
+        provenance_graph=provenance_graph,
         validation_log=validation_log,
         run_dir=run_dir,
     )
