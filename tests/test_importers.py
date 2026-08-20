@@ -1,11 +1,31 @@
 from pathlib import Path
 
-from origo.importers.local_json import load_failure_yaml, load_trace_json
+from origo.importers import (
+    load_failure_yaml,
+    load_langfuse_json,
+    load_openinference_json,
+    load_phoenix_json,
+    load_trace_json,
+    load_traceroot_json,
+)
 from origo.schema.failure import FailureSpec
 from origo.schema.trace import TraceRun
 
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
+
+
+def test_importer_package_exposes_every_supported_trace_loader():
+    assert all(
+        callable(loader)
+        for loader in (
+            load_trace_json,
+            load_openinference_json,
+            load_phoenix_json,
+            load_langfuse_json,
+            load_traceroot_json,
+        )
+    )
 
 
 def test_loads_rag_stale_policy_trace_json():

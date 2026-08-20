@@ -1,6 +1,8 @@
 import json
 
-from origo.importers.traceroot import load_traceroot_json
+import pytest
+
+from origo.importers.traceroot import load_traceroot_json, traceroot_json_to_trace
 
 
 def test_traceroot_json_imports_spans_and_git_source_context(tmp_path):
@@ -22,6 +24,8 @@ def test_traceroot_json_imports_spans_and_git_source_context(tmp_path):
                 "parent_span_id": None,
                 "name": "check_refund_eligibility",
                 "span_kind": "TOOL",
+                "span_start_time": "2024-01-01 00:00:00",
+                "span_end_time": "1704067201.5",
                 "input": {"order_id": "A100"},
                 "output": {"status": "eligible"},
                 "git_source_file": "app/refunds.py",
@@ -49,7 +53,22 @@ def test_traceroot_json_imports_spans_and_git_source_context(tmp_path):
     assert trace.metadata["git_repo"] == "https://github.com/example/shop"
     assert trace.metadata["git_ref"] == "abc123"
     assert trace.get_span("tool-span").kind == "tool_result"
+    assert trace.get_span("tool-span").started_at == 1_704_067_200
+    assert trace.get_span("tool-span").ended_at == 1_704_067_201.5
     assert trace.get_span("tool-span").metadata["git_source_file"] == "app/refunds.py"
     assert trace.get_span("tool-span").metadata["git_source_line"] == 42
     assert trace.get_span("llm-final").kind == "final_output"
     assert trace.metadata["source_schema"] == "traceroot.clickhouse_json"
+
+
+def test_traceroot_rejects_missing_trace_and_span_identifiers():
+    with pytest.raises(ValueError, match="TraceRoot trace id is missing"):
+        traceroot_json_to_trace({"spans": [{"span_id": "span-1"}]})
+
+    with pytest.raises(ValueError, match="TraceRoot span id is missing"):
+        traceroot_json_to_trace(
+            {
+                "traces": [{"trace_id": "trace-1"}],
+                "spans": [{"trace_id": "trace-1"}],
+            }
+        )

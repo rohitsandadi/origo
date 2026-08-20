@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from origo.importers.common import optional_identifier, parse_timestamp, require_identifier
 from origo.schema.trace import TraceRun, TraceSpan
 
 
@@ -73,7 +74,7 @@ def langfuse_json_to_trace(data: dict[str, Any]) -> TraceRun:
 
 
 def _observation_to_span(observation: dict[str, Any], scores: list[dict[str, Any]]) -> TraceSpan:
-    observation_id = str(observation.get("id"))
+    observation_id = require_identifier(observation.get("id"), field="Langfuse observation id")
     output = observation.get("output")
     kind = _observation_kind(str(observation.get("type") or ""), output)
     metadata = {
@@ -84,14 +85,16 @@ def _observation_to_span(observation: dict[str, Any], scores: list[dict[str, Any
         metadata["langfuse_scores"] = scores
     return TraceSpan(
         id=observation_id,
-        parent_id=observation.get("parentObservationId") or observation.get("parent_observation_id"),
+        parent_id=optional_identifier(
+            observation.get("parentObservationId") or observation.get("parent_observation_id")
+        ),
         kind=kind,
         name=observation.get("name"),
         input=observation.get("input"),
         output=output,
         metadata=metadata,
-        started_at=_time_to_float(observation.get("startTime") or observation.get("start_time")),
-        ended_at=_time_to_float(observation.get("endTime") or observation.get("end_time")),
+        started_at=parse_timestamp(observation.get("startTime") or observation.get("start_time")),
+        ended_at=parse_timestamp(observation.get("endTime") or observation.get("end_time")),
     )
 
 
@@ -124,9 +127,3 @@ def _dict_or_empty(value: Any) -> dict[str, Any]:
 
 def _string_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
-
-
-def _time_to_float(value: Any) -> float | None:
-    if isinstance(value, int | float):
-        return float(value)
-    return None

@@ -1,6 +1,8 @@
 import json
 
-from origo.importers.phoenix import load_phoenix_json
+import pytest
+
+from origo.importers.phoenix import load_phoenix_json, phoenix_json_to_trace
 
 
 def test_phoenix_span_json_imports_trace_and_retrieval_documents(tmp_path):
@@ -11,6 +13,8 @@ def test_phoenix_span_json_imports_trace_and_retrieval_documents(tmp_path):
                 "context": {"trace_id": "trace-1", "span_id": "span-retrieval"},
                 "span_kind": "RETRIEVER",
                 "parent_id": None,
+                "start_time": "2024-01-01T00:00:00Z",
+                "end_time": "2024-01-01T00:00:00.250Z",
                 "attributes": {
                     "input": {"value": "refund policy"},
                     "retrieval": {
@@ -46,8 +50,22 @@ def test_phoenix_span_json_imports_trace_and_retrieval_documents(tmp_path):
     assert trace.run_id == "trace-1"
     assert trace.final_output_span_id == "span-final"
     assert trace.get_span("span-retrieval").kind == "retrieval"
+    assert trace.get_span("span-retrieval").started_at == 1_704_067_200
+    assert trace.get_span("span-retrieval").ended_at == 1_704_067_200.25
     assert trace.get_span("span-retrieval").output == ["span-retrieval.document.0"]
     assert trace.get_span("span-retrieval.document.0").kind == "retrieved_chunk"
     assert "90 days" in trace.get_span("span-retrieval.document.0").output
     assert trace.get_span("span-final").kind == "final_output"
     assert trace.metadata["source_schema"] == "phoenix.span_json"
+
+
+@pytest.mark.parametrize(
+    ("context", "message"),
+    [
+        ({"span_id": "span-1"}, "Phoenix trace id is missing"),
+        ({"trace_id": "trace-1"}, "Phoenix span id is missing"),
+    ],
+)
+def test_phoenix_rejects_missing_identifiers(context, message):
+    with pytest.raises(ValueError, match=message):
+        phoenix_json_to_trace({"spans": [{"context": context}]})
