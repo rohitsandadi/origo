@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from origo.importers.common import parse_timestamp
+from origo.importers.common import optional_identifier, parse_timestamp, require_identifier
 from origo.schema.trace import TraceRun, TraceSpan
 
 
@@ -21,10 +21,14 @@ def phoenix_json_to_trace(data: dict[str, Any] | list[dict[str, Any]]) -> TraceR
 
     for span_data in spans_data:
         context = span_data.get("context", {})
-        trace_id = str(context.get("trace_id") or context.get("traceId") or span_data.get("trace_id"))
-        span_id = str(context.get("span_id") or context.get("spanId") or span_data.get("span_id"))
-        if not trace_id or not span_id:
-            raise ValueError("Phoenix span is missing context.trace_id or context.span_id")
+        trace_id = require_identifier(
+            context.get("trace_id") or context.get("traceId") or span_data.get("trace_id"),
+            field="Phoenix trace id",
+        )
+        span_id = require_identifier(
+            context.get("span_id") or context.get("spanId") or span_data.get("span_id"),
+            field="Phoenix span id",
+        )
         trace_ids.add(trace_id)
 
         attrs = span_data.get("attributes") or {}
@@ -37,7 +41,7 @@ def phoenix_json_to_trace(data: dict[str, Any] | list[dict[str, Any]]) -> TraceR
         spans.append(
             TraceSpan(
                 id=span_id,
-                parent_id=span_data.get("parent_id") or span_data.get("parentId"),
+                parent_id=optional_identifier(span_data.get("parent_id") or span_data.get("parentId")),
                 kind=kind,
                 name=span_data.get("name"),
                 input=_nested_get(attrs, ["input", "value"]) or attrs.get("input.value"),

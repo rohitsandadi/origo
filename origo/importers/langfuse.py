@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from origo.importers.common import parse_timestamp
+from origo.importers.common import optional_identifier, parse_timestamp, require_identifier
 from origo.schema.trace import TraceRun, TraceSpan
 
 
@@ -74,7 +74,7 @@ def langfuse_json_to_trace(data: dict[str, Any]) -> TraceRun:
 
 
 def _observation_to_span(observation: dict[str, Any], scores: list[dict[str, Any]]) -> TraceSpan:
-    observation_id = str(observation.get("id"))
+    observation_id = require_identifier(observation.get("id"), field="Langfuse observation id")
     output = observation.get("output")
     kind = _observation_kind(str(observation.get("type") or ""), output)
     metadata = {
@@ -85,7 +85,9 @@ def _observation_to_span(observation: dict[str, Any], scores: list[dict[str, Any
         metadata["langfuse_scores"] = scores
     return TraceSpan(
         id=observation_id,
-        parent_id=observation.get("parentObservationId") or observation.get("parent_observation_id"),
+        parent_id=optional_identifier(
+            observation.get("parentObservationId") or observation.get("parent_observation_id")
+        ),
         kind=kind,
         name=observation.get("name"),
         input=observation.get("input"),

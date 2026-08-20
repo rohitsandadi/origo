@@ -1,6 +1,8 @@
 import json
 
-from origo.importers.traceroot import load_traceroot_json
+import pytest
+
+from origo.importers.traceroot import load_traceroot_json, traceroot_json_to_trace
 
 
 def test_traceroot_json_imports_spans_and_git_source_context(tmp_path):
@@ -57,3 +59,16 @@ def test_traceroot_json_imports_spans_and_git_source_context(tmp_path):
     assert trace.get_span("tool-span").metadata["git_source_line"] == 42
     assert trace.get_span("llm-final").kind == "final_output"
     assert trace.metadata["source_schema"] == "traceroot.clickhouse_json"
+
+
+def test_traceroot_rejects_missing_trace_and_span_identifiers():
+    with pytest.raises(ValueError, match="TraceRoot trace id is missing"):
+        traceroot_json_to_trace({"spans": [{"span_id": "span-1"}]})
+
+    with pytest.raises(ValueError, match="TraceRoot span id is missing"):
+        traceroot_json_to_trace(
+            {
+                "traces": [{"trace_id": "trace-1"}],
+                "spans": [{"trace_id": "trace-1"}],
+            }
+        )
