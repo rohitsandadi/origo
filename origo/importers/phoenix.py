@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from origo.importers.common import optional_identifier, parse_timestamp, require_identifier
 from origo.schema.trace import TraceRun, TraceSpan
 
 
@@ -20,10 +21,14 @@ def phoenix_json_to_trace(data: dict[str, Any] | list[dict[str, Any]]) -> TraceR
 
     for span_data in spans_data:
         context = span_data.get("context", {})
-        trace_id = str(context.get("trace_id") or context.get("traceId") or span_data.get("trace_id"))
-        span_id = str(context.get("span_id") or context.get("spanId") or span_data.get("span_id"))
-        if not trace_id or not span_id:
-            raise ValueError("Phoenix span is missing context.trace_id or context.span_id")
+        trace_id = require_identifier(
+            context.get("trace_id") or context.get("traceId") or span_data.get("trace_id"),
+            field="Phoenix trace id",
+        )
+        span_id = require_identifier(
+            context.get("span_id") or context.get("spanId") or span_data.get("span_id"),
+            field="Phoenix span id",
+        )
         trace_ids.add(trace_id)
 
         attrs = span_data.get("attributes") or {}
@@ -36,14 +41,14 @@ def phoenix_json_to_trace(data: dict[str, Any] | list[dict[str, Any]]) -> TraceR
         spans.append(
             TraceSpan(
                 id=span_id,
-                parent_id=span_data.get("parent_id") or span_data.get("parentId"),
+                parent_id=optional_identifier(span_data.get("parent_id") or span_data.get("parentId")),
                 kind=kind,
                 name=span_data.get("name"),
                 input=_nested_get(attrs, ["input", "value"]) or attrs.get("input.value"),
                 output=[f"{span_id}.document.{index}" for index, _ in enumerate(documents)] if documents else _nested_get(attrs, ["output", "value"]) or attrs.get("output.value"),
                 metadata=_metadata(attrs),
-                started_at=_time_to_float(span_data.get("start_time") or span_data.get("startTime")),
-                ended_at=_time_to_float(span_data.get("end_time") or span_data.get("endTime")),
+                started_at=parse_timestamp(span_data.get("start_time") or span_data.get("startTime")),
+                ended_at=parse_timestamp(span_data.get("end_time") or span_data.get("endTime")),
             )
         )
         for index, document in enumerate(documents):
@@ -122,9 +127,3 @@ def _metadata(attrs: dict[str, Any]) -> dict[str, Any]:
         for key, value in attrs.items()
         if key not in {"input", "output", "retrieval", "origo", "input.value", "output.value", "retrieval.documents", "origo.final_output"}
     }
-
-
-def _time_to_float(value: Any) -> float | None:
-    if isinstance(value, int | float):
-        return float(value)
-    return None
