@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from origo.importers.common import parse_timestamp
 from origo.schema.trace import TraceRun, TraceSpan
 
 
@@ -90,8 +91,8 @@ def _observation_to_span(observation: dict[str, Any], scores: list[dict[str, Any
         input=observation.get("input"),
         output=output,
         metadata=metadata,
-        started_at=_time_to_float(observation.get("startTime") or observation.get("start_time")),
-        ended_at=_time_to_float(observation.get("endTime") or observation.get("end_time")),
+        started_at=parse_timestamp(observation.get("startTime") or observation.get("start_time")),
+        ended_at=parse_timestamp(observation.get("endTime") or observation.get("end_time")),
     )
 
 
@@ -124,9 +125,3 @@ def _dict_or_empty(value: Any) -> dict[str, Any]:
 
 def _string_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
-
-
-def _time_to_float(value: Any) -> float | None:
-    if isinstance(value, int | float):
-        return float(value)
-    return None

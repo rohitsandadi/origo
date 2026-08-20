@@ -18,6 +18,8 @@ def test_langfuse_json_imports_trace_observations_and_scores(tmp_path):
                 "traceId": "trace-1",
                 "type": "TOOL",
                 "name": "check_refund_eligibility",
+                "startTime": "2024-01-01T01:00:00+01:00",
+                "endTime": "2024-01-01T00:00:01Z",
                 "input": {"order_id": "A100"},
                 "output": {"status": "eligible", "reason": "inside 30 days"},
             },
@@ -51,6 +53,8 @@ def test_langfuse_json_imports_trace_observations_and_scores(tmp_path):
     assert trace.final_output_span_id == "obs-final"
     assert trace.get_span("trace.input").kind == "user_input"
     assert trace.get_span("obs-tool").kind == "tool_result"
+    assert trace.get_span("obs-tool").started_at == 1_704_067_200
+    assert trace.get_span("obs-tool").ended_at == 1_704_067_201
     assert trace.get_span("obs-tool").output["status"] == "eligible"
     assert trace.get_span("obs-final").kind == "final_output"
     assert trace.get_span("obs-final").parent_id == "obs-tool"

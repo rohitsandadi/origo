@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from origo.importers.common import parse_timestamp
 from origo.schema.trace import TraceRun, TraceSpan
 
 
@@ -42,8 +43,8 @@ def phoenix_json_to_trace(data: dict[str, Any] | list[dict[str, Any]]) -> TraceR
                 input=_nested_get(attrs, ["input", "value"]) or attrs.get("input.value"),
                 output=[f"{span_id}.document.{index}" for index, _ in enumerate(documents)] if documents else _nested_get(attrs, ["output", "value"]) or attrs.get("output.value"),
                 metadata=_metadata(attrs),
-                started_at=_time_to_float(span_data.get("start_time") or span_data.get("startTime")),
-                ended_at=_time_to_float(span_data.get("end_time") or span_data.get("endTime")),
+                started_at=parse_timestamp(span_data.get("start_time") or span_data.get("startTime")),
+                ended_at=parse_timestamp(span_data.get("end_time") or span_data.get("endTime")),
             )
         )
         for index, document in enumerate(documents):
@@ -122,9 +123,3 @@ def _metadata(attrs: dict[str, Any]) -> dict[str, Any]:
         for key, value in attrs.items()
         if key not in {"input", "output", "retrieval", "origo", "input.value", "output.value", "retrieval.documents", "origo.final_output"}
     }
-
-
-def _time_to_float(value: Any) -> float | None:
-    if isinstance(value, int | float):
-        return float(value)
-    return None
