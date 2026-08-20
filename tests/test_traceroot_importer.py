@@ -22,6 +22,8 @@ def test_traceroot_json_imports_spans_and_git_source_context(tmp_path):
                 "parent_span_id": None,
                 "name": "check_refund_eligibility",
                 "span_kind": "TOOL",
+                "span_start_time": "2024-01-01 00:00:00",
+                "span_end_time": "1704067201.5",
                 "input": {"order_id": "A100"},
                 "output": {"status": "eligible"},
                 "git_source_file": "app/refunds.py",
@@ -49,6 +51,8 @@ def test_traceroot_json_imports_spans_and_git_source_context(tmp_path):
     assert trace.metadata["git_repo"] == "https://github.com/example/shop"
     assert trace.metadata["git_ref"] == "abc123"
     assert trace.get_span("tool-span").kind == "tool_result"
+    assert trace.get_span("tool-span").started_at == 1_704_067_200
+    assert trace.get_span("tool-span").ended_at == 1_704_067_201.5
     assert trace.get_span("tool-span").metadata["git_source_file"] == "app/refunds.py"
     assert trace.get_span("tool-span").metadata["git_source_line"] == 42
     assert trace.get_span("llm-final").kind == "final_output"
