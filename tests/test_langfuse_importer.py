@@ -1,6 +1,8 @@
 import json
 
-from origo.importers.langfuse import load_langfuse_json
+import pytest
+
+from origo.importers.langfuse import langfuse_json_to_trace, load_langfuse_json
 
 
 def test_langfuse_json_imports_trace_observations_and_scores(tmp_path):
@@ -60,3 +62,8 @@ def test_langfuse_json_imports_trace_observations_and_scores(tmp_path):
     assert trace.get_span("obs-final").parent_id == "obs-tool"
     assert trace.get_span("obs-final").metadata["langfuse_scores"][0]["name"] == "tool_response_handling"
     assert trace.metadata["source_schema"] == "langfuse.json_export"
+
+
+def test_langfuse_rejects_observation_without_identifier():
+    with pytest.raises(ValueError, match="Langfuse observation id is missing"):
+        langfuse_json_to_trace({"trace": {"id": "trace-1"}, "observations": [{"type": "SPAN"}]})

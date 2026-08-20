@@ -1,6 +1,8 @@
 import json
 
-from origo.importers.phoenix import load_phoenix_json
+import pytest
+
+from origo.importers.phoenix import load_phoenix_json, phoenix_json_to_trace
 
 
 def test_phoenix_span_json_imports_trace_and_retrieval_documents(tmp_path):
@@ -55,3 +57,15 @@ def test_phoenix_span_json_imports_trace_and_retrieval_documents(tmp_path):
     assert "90 days" in trace.get_span("span-retrieval.document.0").output
     assert trace.get_span("span-final").kind == "final_output"
     assert trace.metadata["source_schema"] == "phoenix.span_json"
+
+
+@pytest.mark.parametrize(
+    ("context", "message"),
+    [
+        ({"span_id": "span-1"}, "Phoenix trace id is missing"),
+        ({"trace_id": "trace-1"}, "Phoenix span id is missing"),
+    ],
+)
+def test_phoenix_rejects_missing_identifiers(context, message):
+    with pytest.raises(ValueError, match=message):
+        phoenix_json_to_trace({"spans": [{"context": context}]})

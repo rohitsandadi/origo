@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from origo.importers.common import parse_timestamp
+from origo.importers.common import optional_identifier, parse_timestamp, require_identifier
 from origo.schema.trace import TraceRun, TraceSpan
 
 
@@ -20,13 +20,16 @@ def traceroot_json_to_trace(data: dict[str, Any]) -> TraceRun:
         raise ValueError("No TraceRoot spans found")
 
     trace_record = traces[0] if traces else {"trace_id": spans_data[0].get("trace_id")}
-    trace_id = str(trace_record.get("trace_id") or trace_record.get("id"))
+    trace_id = require_identifier(
+        trace_record.get("trace_id") or trace_record.get("id"),
+        field="TraceRoot trace id",
+    )
     trace_output = trace_record.get("output")
     spans: list[TraceSpan] = []
     final_output_span_id: str | None = None
 
     for span_data in spans_data:
-        if str(span_data.get("trace_id")) != trace_id:
+        if optional_identifier(span_data.get("trace_id")) != trace_id:
             continue
         span = _span_record_to_trace_span(span_data)
         if span.output == trace_output and span.kind in {"llm_call", "planner_step"}:
@@ -58,8 +61,8 @@ def traceroot_json_to_trace(data: dict[str, Any]) -> TraceRun:
 
 def _span_record_to_trace_span(span_data: dict[str, Any]) -> TraceSpan:
     return TraceSpan(
-        id=str(span_data.get("span_id")),
-        parent_id=span_data.get("parent_span_id"),
+        id=require_identifier(span_data.get("span_id"), field="TraceRoot span id"),
+        parent_id=optional_identifier(span_data.get("parent_span_id")),
         kind=_span_kind(str(span_data.get("span_kind") or "")),
         name=span_data.get("name"),
         input=_maybe_json(span_data.get("input")),
